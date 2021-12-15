@@ -17,8 +17,8 @@
     <button id="btn-init" type="button" onclick="init()">Start</button>
     <div class="content-layout">
         <div class="content-identify">
-            <div class="identify-intro">＊請將商品擺在鏡頭前，商品將自動加入結帳清單</div>
-            <!-- <div class="identify-intro" id="countdown-content">倒數 <span id="countdown"></span> 秒加入商品</div> -->
+            <div class="identify-intro">＊請將商品擺在鏡頭前3秒不動，商品將自動加入結帳清單</div>
+            <div class="identify-intro" id="countdown-content">倒數 <span id="countdown">3</span> 秒加入商品</div>
             <div id="webcam-container"></div>
             <div id="label-container"></div>
             <form>
@@ -45,11 +45,22 @@
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
     <script type="text/javascript">
+        // 手動更改區-----
+        const Obj_Price = [
+            { obj: '美工刀', price: 55 },
+            { obj: '立可帶', price: 20 },
+            { obj: '紙膠帶', price: 37 },
+            { obj: 'ESP32', price: 400 },
+        ]
+        //備註：模型一定要有一class「其他」，類別內容為周圍環境＆白底
         const URL = "https://teachablemachine.withgoogle.com/models/1uoci7h1J/";
+        //--------------
+
         let model, webcam, labelContainer, maxPredictions;
-        let prelargestP = '無';
         let countdownFlag = false;
         let total = 0;
+        let ms = 3;
+        let flag = false;
         function submit() { window.location.reload(); }
         async function init() {
             document.getElementById("btn-init").remove();
@@ -82,61 +93,53 @@
                 // labelContainer.childNodes[i].innerHTML = classPrediction;
                 if (i > 0) { if (prediction[i].probability.toFixed(2) > prediction[i - 1].probability.toFixed(2)) { largestP = prediction[i].className; } }
             }
-            // let totalArray=[];
-            // console.log(document.getElementsByClassName('price')[0].innerText);
-            // total = document.getElementsByClassName('price').attr("value")
             $("#total-price").text(total);
             if (largestP != '其他') {
                 document.getElementById("label-value").value = largestP;
-                // $("#countdown-content").css("visibility", "visible");
-                // countdownFlag = true;
+                $("#countdown-content").css("visibility", "visible");
+                flag = true;
+                if (countdownFlag) {
+                    let li;
+                    Obj_Price.map((obj,index) => {
+                        if (largestP == Obj_Price[index].obj) {
+                            li = `
+                                <li class="objlist-body">
+                                    <div class="obj">${obj.obj}</div>
+                                    <div class="price">${obj.price}</div>
+                                </li>
+                                `
+                            total = total + obj.price;
+                        }
+                    })
+                    $("#object-list").append(li);
+                    countdownFlag = false;
+                }
+
             } else {
                 document.getElementById("label-value").value = "";
-                // $("#countdown-content").css("visibility", "hidden");
+                $('#countdown').text("3");
+                flag = false;
+                $("#countdown-content").css("visibility", "hidden");
             }
 
-            if (prelargestP != largestP && largestP != '其他') {
-                let li;
-                if (largestP == '立可帶') {
-                    li = `
-                    <li class="objlist-body">
-                        <div class="obj">立可帶</div>
-                        <div class="price" nodeValue="20">20</div>
-                    </li>
-                    `
-                    total = total+20;
-                } else if (largestP == '美工刀') {
-                    li = `
-                    <li class="objlist-body">
-                        <div class="obj">美工刀</div>
-                        <div class="price" nodeValue="55">55</div>
-                    </li>
-                    `
-                    total = total+55;
-                } else if (largestP == '紙膠帶') {
-                    li = `
-                    <li class="objlist-body">
-                        <div class="obj">紙膠帶</div>
-                        <div class="price" nodeValue="37">37</div>
-                    </li>
-                    `
-                    total = total+37;
-                } else if (largestP == 'ESP32') {
-                    li = `
-                    <li class="objlist-body">
-                        <div class="obj">ESP32開發板</div>
-                        <div class="price" nodeValue="400">400</div>
-                    </li>
-                    `
-                    total = total+400;
-                }
-                // if (countdownFlag) { 
-                    $("#object-list").append(li); 
-                // }
-                prelargestP = largestP;
-                // countdownFlag = false;
-            }
+
         }
+        var int;
+        function countdown() {
+            int = setInterval(function () {
+                if (flag) {
+                    $('#countdown').text(ms);
+                    ms--;
+                    if (ms < 0) {
+                        ms = 3;
+                        countdownFlag = true;
+                    }
+                } else {
+                    ms = 3
+                }
+            }, 1000)
+        }
+        countdown();
     </script>
 </body>
 
